@@ -1,0 +1,34 @@
+name: job-2
+on: workflow_dispatch
+permissions:
+  contents: read
+  models: read
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install
+      - name: mask job link
+        run: echo "::add-mask::${{ secrets.JOB2_URL }}"
+      - name: run worker
+        env:
+          JOB_URL: ${{ secrets.JOB2_URL }}
+          JOB_NAME: job-2
+          SKILL_FILE: skills/voice-to-memo.SKILL.md
+          LLM_BASE_URL: https://models.github.ai/inference
+          LLM_MODEL: openai/gpt-4.1
+          LLM_KEY: ${{ secrets.GITHUB_TOKEN }}
+          EXTRA: "The clip URL is ${{ vars.JOB2_CLIP }}"
+          OUT_DIR: out
+        run: node worker.mjs
+      - name: encrypt output (repo is public)
+        if: always()
+        env:
+          PASS: ${{ secrets.OUT_PASS }}
+        run: tar czf - out | openssl enc -aes-256-cbc -pbkdf2 -pass env:PASS -out job-2.enc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: job-2, path: job-2.enc }
