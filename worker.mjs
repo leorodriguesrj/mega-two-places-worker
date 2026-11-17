@@ -35,7 +35,10 @@ for (let step = 1; step <= maxSteps; step++) {
     body: JSON.stringify({ model, messages, tools: llmTools, temperature: 0 }),
   });
   if (!res.ok) throw new Error(`LLM ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const msg = (await res.json()).choices[0].message;
+  const raw = await res.text();
+  let body;
+  try { body = JSON.parse(raw); } catch { throw new Error(`LLM ${res.status} non-JSON body: ${raw.slice(0, 300)} | headers: ${[...res.headers].map(([k, v]) => `${k}=${v}`).join("; ").slice(0, 500)}`); }
+  const msg = body.choices[0].message;
   messages.push(msg);
   if (msg.content) await log(`[${step}] assistant: ${msg.content.slice(0, 500)}`);
   if (!msg.tool_calls?.length) break;
