@@ -21,7 +21,7 @@ jobs:
           LLM_BASE_URL: https://api.x.ai/v1
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           LLM_KEY: ${{ secrets.LLM_KEY }}
-          EXTRA: "The clip URL is ${{ vars.JOB2_CLIP }}"
+          EXTRA: "The clip URL is ${{ vars.JOB2_CLIP }}. Keep the time said in the clip in each note, in the words as said (for example: Three twenty. Tram three boards froze again, feed refresh stalled at the depot panel @0:50). The notes are the only record, so do not drop the said time. Write each note exactly once."
           OUT_DIR: out
         run: node worker.mjs
       - name: encrypt output (repo is public)
