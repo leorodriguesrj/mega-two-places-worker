@@ -1,6 +1,8 @@
 // One worker = one job. Reads the job's skill, drives the job's MCP link with an LLM tool loop.
 // Env: JOB_URL, JOB_NAME, SKILL_FILE, LLM_BASE_URL, LLM_MODEL, LLM_KEY (optional), EXTRA (optional), OUT_DIR
 import { readFile, writeFile, appendFile, mkdir } from "node:fs/promises";
+import { Agent, setGlobalDispatcher } from "undici";
+setGlobalDispatcher(new Agent({ headersTimeout: 0, bodyTimeout: 0 }));
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 

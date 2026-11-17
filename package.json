@@ -1,2 +1,2 @@
 { "name": "two-places-worker", "private": true, "type": "module",
-  "dependencies": { "@modelcontextprotocol/sdk": "1.32.2" } }
+  "dependencies": { "@modelcontextprotocol/sdk": "1.32.2", "undici": "^7.0.0" } }
