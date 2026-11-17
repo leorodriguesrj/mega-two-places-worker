@@ -2,10 +2,10 @@ name: job-2
 on: workflow_dispatch
 permissions:
   contents: read
-  models: read
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -13,14 +13,18 @@ jobs:
       - run: npm install
       - name: mask job link
         run: echo "::add-mask::${{ secrets.JOB2_URL }}"
+      - name: install ollama and pull model (GitHub Models is retired)
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          (ollama serve > ollama.log 2>&1 &) ; sleep 5
+          ollama pull qwen2.5:7b-instruct
       - name: run worker
         env:
           JOB_URL: ${{ secrets.JOB2_URL }}
           JOB_NAME: job-2
           SKILL_FILE: skills/voice-to-memo.SKILL.md
-          LLM_BASE_URL: https://models.github.ai/inference
-          LLM_MODEL: openai/gpt-4.1
-          LLM_KEY: ${{ secrets.GITHUB_TOKEN }}
+          LLM_BASE_URL: http://localhost:11434/v1
+          LLM_MODEL: qwen2.5:7b-instruct
           EXTRA: "The clip URL is ${{ vars.JOB2_CLIP }}"
           OUT_DIR: out
         run: node worker.mjs
