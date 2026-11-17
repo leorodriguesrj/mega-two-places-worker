@@ -29,12 +29,12 @@ const messages = [
   { role: "user", content: `Do the job now.${e.EXTRA ? "\n" + e.EXTRA : ""}\nWhen submit has returned, reply with the word DONE.` },
 ];
 
-let submitResult = null;
+let submitResult = null, holdErrors = 0;
 for (let step = 1; step <= maxSteps; step++) {
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
     headers: { "content-type": "application/json", ...(e.LLM_KEY ? { authorization: `Bearer ${e.LLM_KEY}` } : {}) },
-    body: JSON.stringify({ model, messages, tools: llmTools, temperature: 0 }),
+    body: JSON.stringify({ model, messages, tools: llmTools, temperature: 0, parallel_tool_calls: false }),
   });
   if (!res.ok) throw new Error(`LLM ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const raw = await res.text();
@@ -44,7 +44,11 @@ for (let step = 1; step <= maxSteps; step++) {
   messages.push(msg);
   if (msg.content) await log(`[${step}] assistant: ${msg.content.slice(0, 500)}`);
   if (!msg.tool_calls?.length) break;
+  // Step tokens are single-use: run only the first call of a batch, refuse the rest.
+  let first = true, stale = 0;
   for (const tc of msg.tool_calls) {
+    if (!first) { messages.push({ role: "tool", tool_call_id: tc.id, content: "ERROR: not run. Call one tool at a time, using the step token from the previous result." }); continue; }
+    first = false;
     let args = {};
     try { args = JSON.parse(tc.function.arguments || "{}"); } catch {}
     await log(`[${step}] call ${tc.function.name} ${JSON.stringify(args)}`);
@@ -58,6 +62,7 @@ for (let step = 1; step <= maxSteps; step++) {
     if (e.GITHUB_ACTIONS) for (const m of text.matchAll(/"(?:receipt|step)":\s*"([^"]+)"/g)) console.log(`::add-mask::${m[1]}`);
     await log(`[${step}] result ${text}`);
     if (tc.function.name === "submit" && !text.startsWith("ERROR")) submitResult = text;
+    if (text.includes("does not hold") && ++holdErrors >= 3) { await log("ABORT: step tokens keep failing"); process.exit(1); }
     messages.push({ role: "tool", tool_call_id: tc.id, content: text });
   }
 }
